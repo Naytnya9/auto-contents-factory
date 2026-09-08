@@ -1,12 +1,29 @@
-name: Daily Auto Content
+name: Daily Horror Content
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  generate-horror:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Start Auto Content Factory
-        run: echo "🤖 Auto Content Factory is starting..."
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate Horror Story
+        run: python scripts/generate_horror.py
+
+      - name: Show Generated Story
+        run: cat horror_story.txt
+
+      - name: Upload Horror Story
+        uses: actions/upload-artifact@v4
+        with:
+          name: horror-story
+          path: horror_story.txt
