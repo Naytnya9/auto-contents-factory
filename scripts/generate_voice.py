@@ -1,8 +1,8 @@
 import os
-import base64
 import wave
 
 from google import genai
+from google.genai import types
 
 
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -18,38 +18,32 @@ with open("horror_story.txt", "r", encoding="utf-8") as file:
 client = genai.Client(api_key=api_key)
 
 
-prompt = f"""
-Read the following Burmese horror story naturally.
+response = client.models.generate_content(
+    model="gemini-3.1-flash-tts-preview",
+    contents=f"""
+Read the following Burmese horror story exactly as written.
 
-Use a slow, mysterious, scary storytelling style.
-
-Add suspense and emotion naturally.
-
-Do not translate or change the words.
+Use a slow, mysterious and scary storytelling style.
+Make the narration dramatic and suspenseful.
 
 Story:
 
 {story}
-"""
-
-
-interaction = client.interactions.create(
-    model="gemini-3.1-flash-tts-preview",
-    input=prompt,
-    response_format={"type": "audio"},
-    generation_config={
-        "speech_config": [
-            {
-                "voice": "Kore"
-            }
-        ]
-    }
+""",
+    config=types.GenerateContentConfig(
+        response_modalities=["AUDIO"],
+        speech_config=types.SpeechConfig(
+            voice_config=types.VoiceConfig(
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                    voice_name="Kore"
+                )
+            )
+        )
+    )
 )
 
 
-audio_data = base64.b64decode(
-    interaction.output_audio.data
-)
+audio_data = response.candidates[0].content.parts[0].inline_data.data
 
 
 with wave.open("narration.wav", "wb") as audio_file:
