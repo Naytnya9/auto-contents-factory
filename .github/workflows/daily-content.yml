@@ -23,17 +23,12 @@ jobs:
       - name: Install Python packages
         run: |
           python -m pip install --upgrade pip
-          python -m pip install google-genai requests Pillow
+          python -m pip install google-genai requests
 
-      - name: Install FFmpeg and subtitle rendering tools
+      - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            ffmpeg \
-            fontconfig \
-            fonts-sil-padauk \
-            librsvg2-bin
-          fc-cache -f
+          sudo apt-get install -y ffmpeg
 
       # ==========================================
       # DOWNLOAD PREVIOUS CONTENT
@@ -50,16 +45,6 @@ jobs:
           skip_unpack: false
 
       # ==========================================
-      # SUBTITLES
-      # ==========================================
-
-      - name: Generate Burmese Subtitles
-        run: python scripts/generate_subtitles.py
-
-      - name: Render Burmese Subtitle Images
-        run: python scripts/render_subtitles.py
-
-      # ==========================================
       # CREATE VIDEO
       # ==========================================
 
@@ -74,12 +59,6 @@ jobs:
         run: |
           echo "===== STORY ====="
           cat horror_story.txt
-
-          echo "===== SUBTITLES ====="
-          ls -lh subtitles.srt
-
-          echo "===== SUBTITLE IMAGES ====="
-          ls -lh subtitle_images/
 
           echo "===== AUDIO ====="
           ls -lh narration.wav
@@ -102,7 +81,5 @@ jobs:
             horror_story.txt
             narration.wav
             scenes.json
-            subtitles.srt
-            subtitle_images/
             images/
             horror_video.mp4
