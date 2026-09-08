@@ -32,8 +32,16 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_voice.py
 
+      - name: Generate Horror Scenes
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/generate_scenes.py
+
       - name: Show Generated Story
         run: cat horror_story.txt
+
+      - name: Show Generated Scenes
+        run: cat scenes.json
 
       - name: Check Audio File
         run: ls -lh narration.wav
@@ -45,3 +53,4 @@ jobs:
           path: |
             horror_story.txt
             narration.wav
+            scenes.json
