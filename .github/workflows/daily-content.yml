@@ -27,11 +27,21 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_horror.py
 
+      - name: Generate AI Voice
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/generate_voice.py
+
       - name: Show Generated Story
         run: cat horror_story.txt
 
-      - name: Upload Horror Story
+      - name: Check Audio File
+        run: ls -lh narration.wav
+
+      - name: Upload Horror Content
         uses: actions/upload-artifact@v4
         with:
-          name: horror-story
-          path: horror_story.txt
+          name: horror-content
+          path: |
+            horror_story.txt
+            narration.wav
