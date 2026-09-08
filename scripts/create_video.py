@@ -4,11 +4,15 @@ import subprocess
 
 
 AUDIO = "narration.wav"
+SUBTITLES = "subtitles.srt"
 OUTPUT = "horror_video.mp4"
 
 
 if not os.path.exists(AUDIO):
     raise FileNotFoundError("narration.wav not found!")
+
+if not os.path.exists(SUBTITLES):
+    raise FileNotFoundError("subtitles.srt not found!")
 
 
 images = sorted(
@@ -45,13 +49,10 @@ duration = float(result.stdout.strip())
 print(f"🎙️ Narration duration: {duration:.2f} seconds")
 
 
-# Give each image an equal amount of screen time
+# Give each image equal screen time
 image_duration = duration / len(images)
 
-print(
-    f"🖼️ Each scene duration: "
-    f"{image_duration:.2f} seconds"
-)
+print(f"🖼️ Each scene duration: {image_duration:.2f} seconds")
 
 
 # Create temporary concat file
@@ -63,21 +64,33 @@ with open(concat_file, "w", encoding="utf-8") as file:
 
         absolute_path = os.path.abspath(image)
 
-        file.write(
-            f"file '{absolute_path}'\n"
-        )
+        file.write(f"file '{absolute_path}'\n")
+        file.write(f"duration {image_duration}\n")
 
-        file.write(
-            f"duration {image_duration}\n"
-        )
-
-    # Repeat the final image so FFmpeg keeps the duration correct
+    # Repeat final image
     file.write(
         f"file '{os.path.abspath(images[-1])}'\n"
     )
 
 
-print("🎬 Creating horror video...")
+print("🎬 Creating horror video with Burmese subtitles...")
+
+
+video_filter = (
+    "scale=1080:1920:"
+    "force_original_aspect_ratio=increase,"
+    "crop=1080:1920,"
+    "subtitles=subtitles.srt:"
+    "force_style='FontName=Noto Sans Myanmar,"
+    "FontSize=22,"
+    "PrimaryColour=&H00FFFFFF,"
+    "OutlineColour=&H00000000,"
+    "BorderStyle=1,"
+    "Outline=2,"
+    "Shadow=1,"
+    "Alignment=2,"
+    "MarginV=80'"
+)
 
 
 subprocess.run(
@@ -89,8 +102,7 @@ subprocess.run(
         "-i", concat_file,
         "-i", AUDIO,
         "-vf",
-        "scale=1080:1920:force_original_aspect_ratio=increase,"
-        "crop=1080:1920",
+        video_filter,
         "-c:v", "libx264",
         "-preset", "medium",
         "-crf", "23",
@@ -104,5 +116,5 @@ subprocess.run(
 )
 
 
-print("✅ Horror video created successfully!")
+print("✅ Horror video with Burmese subtitles created successfully!")
 print(f"🎥 Output: {OUTPUT}")
