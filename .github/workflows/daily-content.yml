@@ -34,6 +34,10 @@ jobs:
       - name: Install FFmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
+      # ==========================================
+      # NEW CONTENT MODE
+      # ==========================================
+
       - name: Generate AI Horror Story
         if: ${{ inputs.mode == 'new' }}
         env:
@@ -53,12 +57,32 @@ jobs:
         run: python scripts/generate_scenes.py
 
       - name: Generate Horror Images
+        if: ${{ inputs.mode == 'new' }}
         env:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
         run: python scripts/generate_images.py
 
+      # ==========================================
+      # REBUILD MODE
+      # ==========================================
+
+      - name: Download Previous Horror Content
+        if: ${{ inputs.mode == 'rebuild' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: horror-content
+          path: .
+
+      # ==========================================
+      # CREATE VIDEO
+      # ==========================================
+
       - name: Create Horror Video
         run: python scripts/create_video.py
+
+      # ==========================================
+      # SHOW FILES
+      # ==========================================
 
       - name: Show Generated Files
         run: |
@@ -76,6 +100,10 @@ jobs:
 
           echo "===== VIDEO ====="
           ls -lh horror_video.mp4
+
+      # ==========================================
+      # UPLOAD RESULT
+      # ==========================================
 
       - name: Upload Horror Content
         uses: actions/upload-artifact@v4
