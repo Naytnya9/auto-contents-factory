@@ -1,27 +1,14 @@
 import os
 import glob
-import json
 import subprocess
-from PIL import Image, ImageDraw, ImageFont
 
 
 AUDIO = "narration.wav"
-SUBTITLES = "subtitles.json"
 OUTPUT = "horror_video.mp4"
-
-FONT_PATH = "/usr/share/fonts/truetype/padauk/Padauk-Regular.ttf"
 
 
 if not os.path.exists(AUDIO):
     raise FileNotFoundError("narration.wav not found!")
-
-if not os.path.exists(SUBTITLES):
-    raise FileNotFoundError("subtitles.json not found!")
-
-if not os.path.exists(FONT_PATH):
-    raise FileNotFoundError(
-        f"Myanmar font not found: {FONT_PATH}"
-    )
 
 
 images = sorted(
@@ -39,73 +26,13 @@ if not images:
 print(f"🎬 Found {len(images)} scene images")
 
 
-with open(SUBTITLES, "r", encoding="utf-8") as file:
-    subtitles = json.load(file)
-
-
-os.makedirs("subtitle_images", exist_ok=True)
-
-
-print("📝 Creating Burmese subtitle images...")
-
-
-font = ImageFont.truetype(
-    FONT_PATH,
-    52
-)
-
-
-for index, subtitle in enumerate(subtitles):
-
-    text = subtitle["text"]
-
-    canvas = Image.new(
-        "RGBA",
-        (1080, 250),
-        (0, 0, 0, 0)
-    )
-
-    draw = ImageDraw.Draw(canvas)
-
-    bbox = draw.textbbox(
-        (0, 0),
-        text,
-        font=font
-    )
-
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-
-    x = (1080 - text_width) // 2
-    y = (250 - text_height) // 2
-
-    draw.text(
-        (x, y),
-        text,
-        font=font,
-        fill="white",
-        stroke_width=3,
-        stroke_fill="black"
-    )
-
-    filename = (
-        f"subtitle_images/"
-        f"subtitle_{index:03d}.png"
-    )
-
-    canvas.save(filename)
-
-    print(f"✅ Created {filename}")
-
-
+# Get narration duration
 result = subprocess.run(
     [
         "ffprobe",
         "-v", "error",
-        "-show_entries",
-        "format=duration",
-        "-of",
-        "default=noprint_wrappers=1:nokey=1",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
         AUDIO
     ],
     capture_output=True,
@@ -116,18 +43,23 @@ result = subprocess.run(
 
 duration = float(result.stdout.strip())
 
+print(f"🎙️ Narration duration: {duration:.2f} seconds")
 
+
+# Give each image equal screen time
 image_duration = duration / len(images)
 
+print(
+    f"🖼️ Each scene duration: "
+    f"{image_duration:.2f} seconds"
+)
 
+
+# Create concat file
 concat_file = "images.txt"
 
 
-with open(
-    concat_file,
-    "w",
-    encoding="utf-8"
-) as file:
+with open(concat_file, "w", encoding="utf-8") as file:
 
     for image in images:
 
@@ -141,12 +73,13 @@ with open(
             f"duration {image_duration}\n"
         )
 
+    # Repeat final image
     file.write(
         f"file '{os.path.abspath(images[-1])}'\n"
     )
 
 
-print("🎬 Creating base horror video...")
+print("🎬 Creating horror video...")
 
 
 subprocess.run(
@@ -161,25 +94,18 @@ subprocess.run(
         "scale=1080:1920:"
         "force_original_aspect_ratio=increase,"
         "crop=1080:1920",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "medium",
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuv420p",
-        "-c:a",
-        "aac",
+        "-c:v", "libx264",
+        "-preset", "medium",
+        "-crf", "23",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "128k",
         "-shortest",
-        "base_video.mp4"
+        OUTPUT
     ],
     check=True
 )
 
 
-print("🎥 Base video created!")
-
-
-print("⚠️ Subtitle overlay will be added next.")
-print("✅ Base horror video created successfully!")
+print("✅ Horror video created successfully!")
+print(f"🎥 Output: {OUTPUT}")
