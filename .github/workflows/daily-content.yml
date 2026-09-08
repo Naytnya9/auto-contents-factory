@@ -37,14 +37,21 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_scenes.py
 
-      - name: Show Generated Story
-        run: cat horror_story.txt
+      - name: Generate Horror Images
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/generate_images.py
 
-      - name: Show Generated Scenes
-        run: cat scenes.json
-
-      - name: Check Audio File
-        run: ls -lh narration.wav
+      - name: Show Generated Files
+        run: |
+          echo "===== STORY ====="
+          cat horror_story.txt
+          echo "===== SCENES ====="
+          cat scenes.json
+          echo "===== AUDIO ====="
+          ls -lh narration.wav
+          echo "===== IMAGES ====="
+          ls -lh images/
 
       - name: Upload Horror Content
         uses: actions/upload-artifact@v4
@@ -54,3 +61,4 @@ jobs:
             horror_story.txt
             narration.wav
             scenes.json
+            images/
