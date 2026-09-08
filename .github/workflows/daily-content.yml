@@ -94,6 +94,8 @@ jobs:
       - name: Create Horror Video
         run: python scripts/create_video.py
 
+      - name: Generate Burmese Subtitles
+        run: python scripts/generate_subtitles.py
       # ==========================================
       # SHOW FILES
       # ==========================================
