@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "new = generate everything, rebuild = reuse previous content"
+        description: "Choose content mode"
         required: true
         default: "rebuild"
         type: choice
@@ -30,36 +30,41 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python packages
-        run: python -m pip install google-genai requests
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install google-genai requests
 
       - name: Install FFmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
+      # ==========================================
+      # GEMINI STEPS
+      # TEMPORARILY DISABLED
+      # ==========================================
+
       - name: Generate AI Horror Story
-        if: inputs.mode == 'new'
+        if: false
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_horror.py
 
       - name: Generate AI Voice
-        if: inputs.mode == 'new'
+        if: false
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_voice.py
 
       - name: Generate Horror Scenes
-        if: inputs.mode == 'new'
+        if: false
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_scenes.py
 
-      - name: Generate Horror Images
-        if: inputs.mode == 'new'
-        env:
-          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-        run: python scripts/generate_images.py
+      # ==========================================
+      # DOWNLOAD PREVIOUS CONTENT
+      # ==========================================
 
       - name: Download Previous Horror Content
         if: inputs.mode == 'rebuild'
@@ -72,8 +77,26 @@ jobs:
           search_artifacts: true
           skip_unpack: false
 
+      # ==========================================
+      # IMAGE GENERATION
+      # ==========================================
+
+      - name: Generate Horror Images
+        if: inputs.mode == 'new'
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+        run: python scripts/generate_images.py
+
+      # ==========================================
+      # CREATE VIDEO
+      # ==========================================
+
       - name: Create Horror Video
         run: python scripts/create_video.py
+
+      # ==========================================
+      # SHOW FILES
+      # ==========================================
 
       - name: Show Generated Files
         run: |
@@ -91,6 +114,10 @@ jobs:
 
           echo "===== VIDEO ====="
           ls -lh horror_video.mp4
+
+      # ==========================================
+      # UPLOAD RESULT
+      # ==========================================
 
       - name: Upload Horror Content
         uses: actions/upload-artifact@v4
