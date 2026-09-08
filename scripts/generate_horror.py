@@ -1,5 +1,6 @@
 import os
 import time
+
 from google import genai
 from google.genai import errors
 
@@ -34,6 +35,15 @@ Requirements:
 MAX_ATTEMPTS = 6
 
 
+def get_wait_time(attempt):
+    # 30, 60, 120, 240, 300 seconds
+    wait_times = [30, 60, 120, 240, 300, 300]
+
+    return wait_times[
+        min(attempt - 1, len(wait_times) - 1)
+    ]
+
+
 for attempt in range(1, MAX_ATTEMPTS + 1):
 
     try:
@@ -51,7 +61,10 @@ for attempt in range(1, MAX_ATTEMPTS + 1):
         story = response.text.strip()
 
         if not story:
-            raise ValueError("Gemini returned an empty story.")
+            raise ValueError(
+                "Gemini returned an empty story."
+            )
+
 
         with open(
             "horror_story.txt",
@@ -60,6 +73,7 @@ for attempt in range(1, MAX_ATTEMPTS + 1):
         ) as file:
 
             file.write(story)
+
 
         print("👻 Horror story generated successfully!")
         print(story)
@@ -70,13 +84,25 @@ for attempt in range(1, MAX_ATTEMPTS + 1):
     except errors.ClientError as error:
 
         if attempt == MAX_ATTEMPTS:
-            print("❌ Gemini quota error after all attempts.")
+
+            print(
+                "❌ Gemini client/quota error "
+                "after all attempts."
+            )
+
             raise
 
-        wait_time = attempt * 30
 
-        print(f"⚠️ Gemini quota/rate limit reached.")
-        print(f"⏳ Waiting {wait_time} seconds...")
+        wait_time = get_wait_time(attempt)
+
+        print(
+            f"⚠️ Gemini client/quota error: {error}"
+        )
+
+        print(
+            f"⏳ Waiting {wait_time} seconds "
+            "before retry..."
+        )
 
         time.sleep(wait_time)
 
@@ -84,22 +110,44 @@ for attempt in range(1, MAX_ATTEMPTS + 1):
     except errors.ServerError as error:
 
         if attempt == MAX_ATTEMPTS:
-            print("❌ Gemini server error after all attempts.")
+
+            print(
+                "❌ Gemini server is still unavailable "
+                "after all attempts."
+            )
+
             raise
 
-        wait_time = attempt * 20
 
-        print("⚠️ Gemini server is busy.")
-        print(f"⏳ Waiting {wait_time} seconds...")
+        wait_time = get_wait_time(attempt)
+
+        print(
+            f"⚠️ Gemini server unavailable: {error}"
+        )
+
+        print(
+            f"⏳ Waiting {wait_time} seconds "
+            "before retry..."
+        )
 
         time.sleep(wait_time)
 
 
     except Exception as error:
 
-        print(f"❌ Unexpected error: {error}")
+        print(
+            f"❌ Unexpected error: {error}"
+        )
 
         if attempt == MAX_ATTEMPTS:
             raise
 
-        time.sleep(10)
+
+        wait_time = 30
+
+        print(
+            f"⏳ Waiting {wait_time} seconds "
+            "before retry..."
+        )
+
+        time.sleep(wait_time)
