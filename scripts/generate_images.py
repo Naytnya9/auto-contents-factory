@@ -1,18 +1,12 @@
 import os
 import json
-import time
-
-from google import genai
-from google.genai import types
+import requests
 
 
-api_key = os.environ.get("GEMINI_API_KEY")
+api_key = os.environ.get("POLLINATIONS_API_KEY")
 
 if not api_key:
-    raise ValueError("GEMINI_API_KEY is missing!")
-
-
-client = genai.Client(api_key=api_key)
+    raise ValueError("POLLINATIONS_API_KEY is missing!")
 
 
 with open("scenes.json", "r", encoding="utf-8") as file:
@@ -31,63 +25,31 @@ for scene in data["scenes"]:
 
     print(f"🎨 Generating Scene {scene_number}...")
 
-    response = None
+    url = "https://gen.pollinations.ai/image/" + requests.utils.quote(prompt)
 
-    # Retry if the Gemini server is temporarily busy
-    for attempt in range(5):
+    headers = {
+        "Authorization": f"Bearer {api_key}"
+    }
 
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.5-flash-image",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_modalities=["IMAGE"],
-                    image_config=types.ImageConfig(
-                        aspect_ratio="9:16",
-                        image_size="1K"
-                    )
-                )
-            )
+    params = {
+        "model": "flux",
+        "width": 576,
+        "height": 1024
+    }
 
-            break
+    response = requests.get(
+        url,
+        headers=headers,
+        params=params,
+        timeout=180
+    )
 
-        except Exception as e:
+    response.raise_for_status()
 
-            print(
-                f"⚠️ Scene {scene_number} "
-                f"attempt {attempt + 1}/5 failed:"
-            )
-            print(e)
+    with open(filename, "wb") as image_file:
+        image_file.write(response.content)
 
-            if attempt == 4:
-                raise
-
-            wait_time = 20 * (attempt + 1)
-
-            print(f"⏳ Waiting {wait_time} seconds before retry...")
-            time.sleep(wait_time)
-
-
-    image_saved = False
-
-    for part in response.parts:
-
-        if part.inline_data:
-
-            image = part.as_image()
-
-            image.save(filename)
-
-            print(f"✅ Created: {filename}")
-
-            image_saved = True
-            break
-
-
-    if not image_saved:
-        raise RuntimeError(
-            f"❌ Gemini returned no image for Scene {scene_number}"
-        )
+    print(f"✅ Created: {filename}")
 
 
 print("👻 All horror images generated successfully!")
