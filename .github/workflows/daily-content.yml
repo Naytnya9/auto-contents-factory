@@ -96,6 +96,7 @@ jobs:
 
       - name: Generate Burmese Subtitles
         run: python scripts/generate_subtitles.py
+
       # ==========================================
       # SHOW FILES
       # ==========================================
