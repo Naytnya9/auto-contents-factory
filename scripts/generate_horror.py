@@ -9,24 +9,27 @@ if not api_key:
 client = genai.Client(api_key=api_key)
 
 prompt = """
-Create ONE original short horror story in natural Burmese language.
+Create ONE completely original short horror story in natural Burmese language.
 
 Requirements:
 - The story must be completely original.
-- Make it scary, mysterious, and suitable for TikTok.
-- Start with a powerful hook.
-- Keep the audience curious.
-- Include suspense and a surprising twist.
-- Use natural Burmese that sounds good for AI voice narration.
+- Make it scary, mysterious, and exciting.
+- Suitable for TikTok, Facebook Reels, and YouTube Shorts.
+- Start with a very powerful hook.
+- Keep the audience curious about what happens next.
+- Include suspense.
+- Include a surprising and scary twist near the ending.
+- Use natural Burmese language that sounds good when spoken by an AI voice narrator.
 - Length: approximately 60 to 90 seconds when narrated.
 - Do not use headings.
 - Do not explain anything outside the story.
+- Return only the final Burmese horror narration.
 
-Return only the final Burmese horror narration.
+Make every generated story different from previous stories.
 """
 
 response = client.models.generate_content(
-    model="gemini-2.5-flash",
+    model="gemini-3.6-flash",
     contents=prompt
 )
 
