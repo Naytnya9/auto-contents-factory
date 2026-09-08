@@ -20,7 +20,7 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install Python packages
-  run: python -m pip install google-genai requests
+        run: python -m pip install google-genai requests
 
       - name: Generate AI Horror Story
         env:
@@ -39,17 +39,20 @@ jobs:
 
       - name: Generate Horror Images
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
         run: python scripts/generate_images.py
 
       - name: Show Generated Files
         run: |
           echo "===== STORY ====="
           cat horror_story.txt
+
           echo "===== SCENES ====="
           cat scenes.json
+
           echo "===== AUDIO ====="
           ls -lh narration.wav
+
           echo "===== IMAGES ====="
           ls -lh images/
 
