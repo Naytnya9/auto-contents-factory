@@ -1,9 +1,9 @@
 import os
 import json
-import base64
 import time
 
 from google import genai
+from google.genai import types
 
 
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -27,21 +27,33 @@ for scene in data["scenes"]:
     scene_number = scene["scene_number"]
     prompt = scene["visual_prompt"]
 
+    filename = f"images/scene_{scene_number}.png"
+
+    # Skip if image already exists
+    if os.path.exists(filename):
+        print(f"⏭️ Scene {scene_number} already exists. Skipping.")
+        continue
+
     print(f"🎨 Generating Scene {scene_number}...")
 
-    # Retry up to 3 times if Gemini temporarily returns 503
-    for attempt in range(3):
+    response = None
+
+    for attempt in range(5):
 
         try:
 
-            interaction = client.interactions.create(
+            response = client.models.generate_content(
                 model="gemini-3.1-flash-image",
-                input=prompt,
-                response_format={
-                    "type": "image",
-                    "aspect_ratio": "9:16",
-                    "image_size": "1K"
-                }
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                    response_format={
+                        "image": {
+                            "aspect_ratio": "9:16",
+                            "image_size": "1K"
+                        }
+                    }
+                )
             )
 
             break
@@ -50,26 +62,45 @@ for scene in data["scenes"]:
 
             print(
                 f"⚠️ Scene {scene_number} "
-                f"attempt {attempt + 1} failed: {e}"
+                f"attempt {attempt + 1}/5 failed:"
             )
 
-            if attempt == 2:
+            print(e)
+
+            if attempt == 4:
                 raise
 
-            print("⏳ Waiting 20 seconds before retry...")
-            time.sleep(20)
+            wait_time = 30 * (attempt + 1)
+
+            print(
+                f"⏳ Waiting {wait_time} seconds "
+                f"before retry..."
+            )
+
+            time.sleep(wait_time)
 
 
-    image_data = interaction.output_image.data
+    image_saved = False
 
-    image_bytes = base64.b64decode(image_data)
+    for part in response.parts:
 
-    filename = f"images/scene_{scene_number}.png"
+        if part.inline_data is not None:
 
-    with open(filename, "wb") as image_file:
-        image_file.write(image_bytes)
+            image = part.as_image()
 
-    print(f"✅ Created: {filename}")
+            image.save(filename)
+
+            image_saved = True
+
+            print(f"✅ Created: {filename}")
+
+            break
+
+
+    if not image_saved:
+        raise RuntimeError(
+            f"Gemini returned no image for Scene {scene_number}"
+        )
 
 
 print("👻 All horror images generated successfully!")
