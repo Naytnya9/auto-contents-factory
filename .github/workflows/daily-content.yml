@@ -32,13 +32,20 @@ jobs:
       - name: Install Python packages
         run: |
           python -m pip install --upgrade pip
-          python -m pip install google-genai requests
+          python -m pip install google-genai requests pycairo PyGObject
 
-      - name: Install FFmpeg and Myanmar Fonts
+      - name: Install FFmpeg and subtitle rendering tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fontconfig fonts-noto-core fonts-noto-extra fonts-sil-padauk
-          fc-cache -f -v
+          sudo apt-get install -y \
+            ffmpeg \
+            fontconfig \
+            fonts-sil-padauk \
+            python3-gi \
+            gir1.2-pango-1.0 \
+            gir1.2-pangocairo-1.0 \
+            libcairo2
+          fc-cache -f
 
       - name: Generate AI Horror Story
         if: false
@@ -76,6 +83,9 @@ jobs:
         run: python scripts/generate_images.py
 
       - name: Generate Burmese Subtitles
+
+      - name: Render Burmese Subtitle Images
+        run: python scripts/render_subtitles.py
         run: python scripts/generate_subtitles.py
 
       - name: Create Horror Video
