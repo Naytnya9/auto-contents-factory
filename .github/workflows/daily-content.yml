@@ -130,5 +130,6 @@ jobs:
             horror_story.txt
             narration.wav
             scenes.json
+            subtitles.srt
             images/
             horror_video.mp4
