@@ -2,6 +2,15 @@ name: Daily Horror Content
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "Choose content generation mode"
+        required: true
+        default: "new"
+        type: choice
+        options:
+          - new
+          - rebuild
 
 jobs:
   generate-horror:
@@ -26,16 +35,19 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Generate AI Horror Story
+        if: ${{ inputs.mode == 'new' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_horror.py
 
       - name: Generate AI Voice
+        if: ${{ inputs.mode == 'new' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_voice.py
 
       - name: Generate Horror Scenes
+        if: ${{ inputs.mode == 'new' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_scenes.py
