@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from google import genai
 
 
@@ -57,27 +58,109 @@ Horror Story:
 """
 
 
-response = client.models.generate_content(
-    model="gemini-3.6-flash",
-    contents=prompt
-)
+# Retry Gemini if the server is temporarily unavailable
+max_attempts = 4
 
-text = response.text.strip()
+for attempt in range(1, max_attempts + 1):
 
-# Remove markdown code fences if Gemini adds them
-if text.startswith("```"):
-    text = text.split("\n", 1)[1]
-    if text.endswith("```"):
-        text = text[:-3]
+    try:
 
-scenes = json.loads(text)
+        print(
+            f"🎬 Generating horror scenes... "
+            f"attempt {attempt}/{max_attempts}"
+        )
 
-with open("scenes.json", "w", encoding="utf-8") as file:
-    json.dump(scenes, file, ensure_ascii=False, indent=2)
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt
+        )
+
+        if not response.text:
+            raise RuntimeError(
+                "Gemini returned an empty response."
+            )
+
+        text = response.text.strip()
+
+        # Remove markdown code fences if Gemini adds them
+        if text.startswith("```"):
+
+            lines = text.splitlines()
+
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+
+            text = "\n".join(lines).strip()
+
+        # Convert Gemini response to JSON
+        scenes = json.loads(text)
+
+        # Basic validation
+        if "scenes" not in scenes:
+            raise ValueError(
+                "Gemini response does not contain 'scenes'."
+            )
+
+        if not scenes["scenes"]:
+            raise ValueError(
+                "Gemini returned an empty scene list."
+            )
+
+        # Save scenes
+        with open(
+            "scenes.json",
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            json.dump(
+                scenes,
+                file,
+                ensure_ascii=False,
+                indent=2
+            )
+
+        print(
+            "🎬 Horror scenes generated successfully!"
+        )
+
+        for scene in scenes["scenes"]:
+
+            print(
+                f"\nScene {scene['scene_number']}"
+            )
+
+            print(
+                scene["visual_prompt"]
+            )
+
+        # Success — stop retry loop
+        break
 
 
-print("🎬 Horror scenes generated successfully!")
+    except Exception as e:
 
-for scene in scenes["scenes"]:
-    print(f"\nScene {scene['scene_number']}")
-    print(scene["visual_prompt"])
+        print(
+            f"⚠️ Scene generation failed: {e}"
+        )
+
+        if attempt == max_attempts:
+
+            print(
+                "❌ Gemini failed after "
+                f"{max_attempts} attempts."
+            )
+
+            raise
+
+        wait_time = attempt * 30
+
+        print(
+            f"⏳ Waiting {wait_time} seconds "
+            "before retry..."
+        )
+
+        time.sleep(wait_time)
