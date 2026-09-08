@@ -22,6 +22,9 @@ jobs:
       - name: Install Python packages
         run: python -m pip install google-genai requests
 
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Generate AI Horror Story
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -42,6 +45,9 @@ jobs:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
         run: python scripts/generate_images.py
 
+      - name: Create Horror Video
+        run: python scripts/create_video.py
+
       - name: Show Generated Files
         run: |
           echo "===== STORY ====="
@@ -56,6 +62,9 @@ jobs:
           echo "===== IMAGES ====="
           ls -lh images/
 
+          echo "===== VIDEO ====="
+          ls -lh horror_video.mp4
+
       - name: Upload Horror Content
         uses: actions/upload-artifact@v4
         with:
@@ -65,3 +74,4 @@ jobs:
             narration.wav
             scenes.json
             images/
+            horror_video.mp4
