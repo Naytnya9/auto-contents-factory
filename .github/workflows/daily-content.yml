@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "Choose content generation mode"
+        description: "new = generate everything, rebuild = reuse previous content"
         required: true
-        default: "new"
+        default: "rebuild"
         type: choice
         options:
           - new
@@ -29,49 +29,40 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
-
       - name: Install Python packages
         run: python -m pip install google-genai requests
 
       - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
-      # ==========================================
-      # NEW CONTENT
-      # ==========================================
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
       - name: Generate AI Horror Story
-        if: ${{ inputs.mode == 'new' }}
+        if: inputs.mode == 'new'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_horror.py
 
       - name: Generate AI Voice
-        if: ${{ inputs.mode == 'new' }}
+        if: inputs.mode == 'new'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_voice.py
 
       - name: Generate Horror Scenes
-        if: ${{ inputs.mode == 'new' }}
+        if: inputs.mode == 'new'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_scenes.py
 
       - name: Generate Horror Images
-        if: ${{ inputs.mode == 'new' }}
+        if: inputs.mode == 'new'
         env:
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
         run: python scripts/generate_images.py
 
-      # ==========================================
-      # REBUILD
-      # ==========================================
-
-      - name: Download Previous Artifact
-        if: ${{ inputs.mode == 'rebuild' }}
+      - name: Download Previous Horror Content
+        if: inputs.mode == 'rebuild'
         uses: dawidd6/action-download-artifact@v11
         with:
           workflow: daily-content.yml
@@ -81,16 +72,8 @@ jobs:
           search_artifacts: true
           skip_unpack: false
 
-      # ==========================================
-      # CREATE VIDEO
-      # ==========================================
-
       - name: Create Horror Video
         run: python scripts/create_video.py
-
-      # ==========================================
-      # SHOW FILES
-      # ==========================================
 
       - name: Show Generated Files
         run: |
@@ -108,10 +91,6 @@ jobs:
 
           echo "===== VIDEO ====="
           ls -lh horror_video.mp4
-
-      # ==========================================
-      # UPLOAD RESULT
-      # ==========================================
 
       - name: Upload Horror Content
         uses: actions/upload-artifact@v4
