@@ -1,145 +1,115 @@
 name: Daily Horror Content
 
 on:
-workflow_dispatch:
-inputs:
-mode:
-description: "Choose content mode"
-required: true
-default: "rebuild"
-type: choice
-options:
-- new
-- rebuild
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Choose content mode"
+        required: true
+        default: "rebuild"
+        type: choice
+        options:
+          - new
+          - rebuild
 
 jobs:
-generate-horror:
-runs-on: ubuntu-latest
+  generate-horror:
+    runs-on: ubuntu-latest
 
-permissions:
-  actions: read
-  contents: read
+    permissions:
+      actions: read
+      contents: read
 
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  - name: Setup Python
-    uses: actions/setup-python@v5
-    with:
-      python-version: "3.11"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-  - name: Install Python packages
-    run: |
-      python -m pip install --upgrade pip
-      python -m pip install google-genai requests
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install google-genai requests
 
-  - name: Install FFmpeg and Myanmar Fonts
-    run: |
-      sudo apt-get update
-      sudo apt-get install -y ffmpeg fonts-noto-core
-      fc-cache -f -v
-      fc-list | grep -i "Myanmar" || true
+      - name: Install FFmpeg and Myanmar Fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-core
+          fc-cache -f -v
+          fc-list | grep -i "Myanmar" || true
 
-  # ==========================================
-  # GEMINI STEPS
-  # TEMPORARILY DISABLED
-  # ==========================================
+      - name: Generate AI Horror Story
+        if: false
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/generate_horror.py
 
-  - name: Generate AI Horror Story
-    if: false
-    env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-    run: python scripts/generate_horror.py
+      - name: Generate AI Voice
+        if: false
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/generate_voice.py
 
-  - name: Generate AI Voice
-    if: false
-    env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-    run: python scripts/generate_voice.py
+      - name: Generate Horror Scenes
+        if: false
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/generate_scenes.py
 
-  - name: Generate Horror Scenes
-    if: false
-    env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-    run: python scripts/generate_scenes.py
+      - name: Download Previous Horror Content
+        if: inputs.mode == 'rebuild'
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          workflow: daily-content.yml
+          workflow_conclusion: success
+          name: horror-content
+          path: .
+          search_artifacts: true
+          skip_unpack: false
 
-  # ==========================================
-  # DOWNLOAD PREVIOUS CONTENT
-  # ==========================================
+      - name: Generate Horror Images
+        if: inputs.mode == 'new'
+        env:
+          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+        run: python scripts/generate_images.py
 
-  - name: Download Previous Horror Content
-    if: inputs.mode == 'rebuild'
-    uses: dawidd6/action-download-artifact@v11
-    with:
-      workflow: daily-content.yml
-      workflow_conclusion: success
-      name: horror-content
-      path: .
-      search_artifacts: true
-      skip_unpack: false
+      - name: Generate Burmese Subtitles
+        run: python scripts/generate_subtitles.py
 
-  # ==========================================
-  # IMAGE GENERATION
-  # ==========================================
+      - name: Create Horror Video
+        run: python scripts/create_video.py
 
-  - name: Generate Horror Images
-    if: inputs.mode == 'new'
-    env:
-      POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-    run: python scripts/generate_images.py
+      - name: Show Generated Files
+        run: |
+          echo "===== STORY ====="
+          cat horror_story.txt
 
-  # ==========================================
-  # GENERATE SUBTITLES
-  # IMPORTANT: Must happen BEFORE video creation
-  # ==========================================
+          echo "===== SCENES ====="
+          cat scenes.json
 
-  - name: Generate Burmese Subtitles
-    run: python scripts/generate_subtitles.py
+          echo "===== AUDIO ====="
+          ls -lh narration.wav
 
-  # ==========================================
-  # CREATE VIDEO WITH SUBTITLES
-  # ==========================================
+          echo "===== SUBTITLES ====="
+          ls -lh subtitles.srt
 
-  - name: Create Horror Video
-    run: python scripts/create_video.py
+          echo "===== IMAGES ====="
+          ls -lh images/
 
-  # ==========================================
-  # SHOW FILES
-  # ==========================================
+          echo "===== VIDEO ====="
+          ls -lh horror_video.mp4
 
-  - name: Show Generated Files
-    run: |
-      echo "===== STORY ====="
-      cat horror_story.txt
-
-      echo "===== SCENES ====="
-      cat scenes.json
-
-      echo "===== AUDIO ====="
-      ls -lh narration.wav
-
-      echo "===== SUBTITLES ====="
-      ls -lh subtitles.srt
-
-      echo "===== IMAGES ====="
-      ls -lh images/
-
-      echo "===== VIDEO ====="
-      ls -lh horror_video.mp4
-
-  # ==========================================
-  # UPLOAD RESULT
-  # ==========================================
-
-  - name: Upload Horror Content
-    uses: actions/upload-artifact@v4
-    with:
-      name: horror-content
-      path: |
-        horror_story.txt
-        narration.wav
-        scenes.json
-        subtitles.srt
-        images/
-        horror_video.mp4
+      - name: Upload Horror Content
+        uses: actions/upload-artifact@v4
+        with:
+          name: horror-content
+          path: |
+            horror_story.txt
+            narration.wav
+            scenes.json
+            subtitles.srt
+            images/
+            horror_video.mp4
