@@ -38,7 +38,7 @@ for scene in data["scenes"]:
 
         try:
             response = client.models.generate_content(
-                model="gemini-3.1-flash-image",
+                model="gemini-2.5-flash-image",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
