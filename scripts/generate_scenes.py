@@ -1,7 +1,9 @@
 import os
 import json
 import time
+
 from google import genai
+from google.genai import errors
 
 
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -11,7 +13,11 @@ if not api_key:
 
 
 with open("horror_story.txt", "r", encoding="utf-8") as file:
-    story = file.read()
+    story = file.read().strip()
+
+
+if not story:
+    raise ValueError("horror_story.txt is empty!")
 
 
 client = genai.Client(api_key=api_key)
@@ -107,15 +113,16 @@ Horror Story:
 """
 
 
-max_attempts = 4
+MAX_ATTEMPTS = 6
 
-for attempt in range(1, max_attempts + 1):
+
+for attempt in range(1, MAX_ATTEMPTS + 1):
 
     try:
 
         print(
             f"🎬 Generating cinematic scenes... "
-            f"attempt {attempt}/{max_attempts}"
+            f"attempt {attempt}/{MAX_ATTEMPTS}"
         )
 
         response = client.models.generate_content(
@@ -130,6 +137,7 @@ for attempt in range(1, max_attempts + 1):
 
         text = response.text.strip()
 
+
         # Remove markdown code fences
         if text.startswith("```"):
 
@@ -143,14 +151,17 @@ for attempt in range(1, max_attempts + 1):
 
             text = "\n".join(lines).strip()
 
+
         # Parse JSON
         scenes = json.loads(text)
+
 
         # Validate characters
         if "characters" not in scenes:
             raise ValueError(
                 "Gemini response does not contain 'characters'."
             )
+
 
         # Validate scenes
         if "scenes" not in scenes:
@@ -162,6 +173,7 @@ for attempt in range(1, max_attempts + 1):
             raise ValueError(
                 "Gemini returned an empty scene list."
             )
+
 
         # Save JSON
         with open(
@@ -177,52 +189,97 @@ for attempt in range(1, max_attempts + 1):
                 indent=2
             )
 
+
         print(
-            "🎬 Cinematic scenes generated successfully!"
+            "✅ Cinematic scenes generated successfully!"
         )
+
 
         print("\n👤 CHARACTERS:")
 
         for character in scenes["characters"]:
 
-            print(
-                f"\n{character['name']}"
-            )
+            print(f"\n{character['name']}")
+            print(character["description"])
 
-            print(
-                character["description"]
-            )
 
         print("\n🎬 SCENES:")
 
         for scene in scenes["scenes"]:
 
-            print(
-                f"\nScene {scene['scene_number']}"
-            )
+            print(f"\nScene {scene['scene_number']}")
+            print(scene["visual_prompt"])
 
-            print(
-                scene["visual_prompt"]
-            )
 
         break
 
+
+    # 429 / quota errors
+    except errors.ClientError as e:
+
+        if attempt == MAX_ATTEMPTS:
+
+            print(
+                "❌ Gemini quota error after all attempts."
+            )
+
+            raise
+
+
+        wait_time = attempt * 45
+
+        print(f"⚠️ Gemini client/quota error: {e}")
+
+        print(
+            f"⏳ Waiting {wait_time} seconds "
+            "before retry..."
+        )
+
+        time.sleep(wait_time)
+
+
+    # 503 / server busy errors
+    except errors.ServerError as e:
+
+        if attempt == MAX_ATTEMPTS:
+
+            print(
+                "❌ Gemini server error after all attempts."
+            )
+
+            raise
+
+
+        wait_time = attempt * 30
+
+        print(f"⚠️ Gemini server busy: {e}")
+
+        print(
+            f"⏳ Waiting {wait_time} seconds "
+            "before retry..."
+        )
+
+        time.sleep(wait_time)
+
+
+    # JSON or other errors
     except Exception as e:
 
         print(
             f"⚠️ Scene generation failed: {e}"
         )
 
-        if attempt == max_attempts:
+        if attempt == MAX_ATTEMPTS:
 
             print(
-                f"❌ Gemini failed after "
-                f"{max_attempts} attempts."
+                f"❌ Scene generation failed after "
+                f"{MAX_ATTEMPTS} attempts."
             )
 
             raise
 
-        wait_time = attempt * 30
+
+        wait_time = 20
 
         print(
             f"⏳ Waiting {wait_time} seconds "
