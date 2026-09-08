@@ -50,78 +50,26 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_horror.py
 
+      - name: Gemini Cooldown After Story
+        if: inputs.mode == 'new'
+        run: |
+          echo "Waiting 60 seconds before generating voice..."
+          sleep 60
+
       - name: Generate AI Voice
         if: inputs.mode == 'new'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_voice.py
 
+      - name: Gemini Cooldown After Voice
+        if: inputs.mode == 'new'
+        run: |
+          echo "Waiting 60 seconds before generating scenes..."
+          sleep 60
+
       - name: Generate Horror Scenes
         if: inputs.mode == 'new'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python scripts/generate_scenes.py
-
-      - name: Generate Horror Images
-        if: inputs.mode == 'new'
-        env:
-          POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
-        run: python scripts/generate_images.py
-
-      # ==========================================
-      # REBUILD MODE
-      # ==========================================
-
-      - name: Download Previous Horror Content
-        if: inputs.mode == 'rebuild'
-        uses: dawidd6/action-download-artifact@v11
-        with:
-          workflow: daily-content.yml
-          workflow_conclusion: success
-          name: horror-content
-          path: .
-          search_artifacts: true
-          skip_unpack: false
-
-      # ==========================================
-      # CREATE VIDEO
-      # ==========================================
-
-      - name: Create Horror Video
-        run: python scripts/create_video.py
-
-      # ==========================================
-      # SHOW GENERATED FILES
-      # ==========================================
-
-      - name: Show Generated Files
-        run: |
-          echo "===== STORY ====="
-          cat horror_story.txt
-
-          echo "===== SCENES ====="
-          cat scenes.json
-
-          echo "===== AUDIO ====="
-          ls -lh narration.wav
-
-          echo "===== IMAGES ====="
-          ls -lh images/
-
-          echo "===== VIDEO ====="
-          ls -lh horror_video.mp4
-
-      # ==========================================
-      # UPLOAD RESULT
-      # ==========================================
-
-      - name: Upload Horror Content
-        uses: actions/upload-artifact@v4
-        with:
-          name: horror-content
-          path: |
-            horror_story.txt
-            narration.wav
-            scenes.json
-            images/
-            horror_video.mp4
+       
