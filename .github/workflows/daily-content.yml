@@ -16,7 +16,12 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Generate Horror Story
+      - name: Install Gemini SDK
+        run: pip install google-genai
+
+      - name: Generate AI Horror Story
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/generate_horror.py
 
       - name: Show Generated Story
