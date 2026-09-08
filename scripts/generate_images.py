@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import time
 
 from google import genai
 
@@ -28,15 +29,36 @@ for scene in data["scenes"]:
 
     print(f"🎨 Generating Scene {scene_number}...")
 
-    interaction = client.interactions.create(
-        model="gemini-3.1-flash-image",
-        input=prompt,
-        response_format={
-            "type": "image",
-            "aspect_ratio": "9:16",
-            "image_size": "1K"
-        }
-    )
+    # Retry up to 3 times if Gemini temporarily returns 503
+    for attempt in range(3):
+
+        try:
+
+            interaction = client.interactions.create(
+                model="gemini-3.1-flash-image",
+                input=prompt,
+                response_format={
+                    "type": "image",
+                    "aspect_ratio": "9:16",
+                    "image_size": "1K"
+                }
+            )
+
+            break
+
+        except Exception as e:
+
+            print(
+                f"⚠️ Scene {scene_number} "
+                f"attempt {attempt + 1} failed: {e}"
+            )
+
+            if attempt == 2:
+                raise
+
+            print("⏳ Waiting 20 seconds before retry...")
+            time.sleep(20)
+
 
     image_data = interaction.output_image.data
 
