@@ -1,109 +1,108 @@
 name: Daily Horror Content
 
 on:
-workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-generate-horror:
-runs-on: ubuntu-latest
+  generate-horror:
+    runs-on: ubuntu-latest
 
-permissions:
-  actions: read
-  contents: read
+    permissions:
+      actions: read
+      contents: read
 
-steps:
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  - name: Checkout repository
-    uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-  - name: Setup Python
-    uses: actions/setup-python@v5
-    with:
-      python-version: "3.11"
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install google-genai requests
 
-  - name: Install Python packages
-    run: |
-      python -m pip install --upgrade pip
-      python -m pip install google-genai requests
+      - name: Install FFmpeg and subtitle rendering tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ffmpeg \
+            fontconfig \
+            fonts-sil-padauk \
+            librsvg2-bin
+          fc-cache -f
 
-  - name: Install FFmpeg and subtitle rendering tools
-    run: |
-      sudo apt-get update
-      sudo apt-get install -y \
-        ffmpeg \
-        fontconfig \
-        fonts-sil-padauk \
-        librsvg2-bin
-      fc-cache -f
+      # ==========================================
+      # DOWNLOAD PREVIOUS CONTENT
+      # ==========================================
 
-  # ==========================================
-  # DOWNLOAD PREVIOUS CONTENT
-  # ==========================================
+      - name: Download Previous Horror Content
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          workflow: daily-content.yml
+          workflow_conclusion: success
+          name: horror-content
+          path: .
+          search_artifacts: true
+          skip_unpack: false
 
-  - name: Download Previous Horror Content
-    uses: dawidd6/action-download-artifact@v11
-    with:
-      workflow: daily-content.yml
-      workflow_conclusion: success
-      name: horror-content
-      path: .
-      search_artifacts: true
-      skip_unpack: false
+      # ==========================================
+      # SUBTITLES
+      # ==========================================
 
-  # ==========================================
-  # SUBTITLES
-  # ==========================================
+      - name: Generate Burmese Subtitles
+        run: python scripts/generate_subtitles.py
 
-  - name: Generate Burmese Subtitles
-    run: python scripts/generate_subtitles.py
+      - name: Render Burmese Subtitle Images
+        run: python scripts/render_subtitles.py
 
-  - name: Render Burmese Subtitle Images
-    run: python scripts/render_subtitles.py
+      # ==========================================
+      # CREATE VIDEO
+      # ==========================================
 
-  # ==========================================
-  # CREATE VIDEO
-  # ==========================================
+      - name: Create Horror Video
+        run: python scripts/create_video.py
 
-  - name: Create Horror Video
-    run: python scripts/create_video.py
+      # ==========================================
+      # SHOW GENERATED FILES
+      # ==========================================
 
-  # ==========================================
-  # SHOW GENERATED FILES
-  # ==========================================
+      - name: Show Generated Files
+        run: |
+          echo "===== STORY ====="
+          cat horror_story.txt
 
-  - name: Show Generated Files
-    run: |
-      echo "===== STORY ====="
-      cat horror_story.txt
+          echo "===== SUBTITLES ====="
+          ls -lh subtitles.srt
 
-      echo "===== SUBTITLES ====="
-      ls -lh subtitles.srt
+          echo "===== SUBTITLE IMAGES ====="
+          ls -lh subtitle_images/
 
-      echo "===== SUBTITLE IMAGES ====="
-      ls -lh subtitle_images/
+          echo "===== AUDIO ====="
+          ls -lh narration.wav
 
-      echo "===== AUDIO ====="
-      ls -lh narration.wav
+          echo "===== IMAGES ====="
+          ls -lh images/
 
-      echo "===== IMAGES ====="
-      ls -lh images/
+          echo "===== VIDEO ====="
+          ls -lh horror_video.mp4
 
-      echo "===== VIDEO ====="
-      ls -lh horror_video.mp4
+      # ==========================================
+      # UPLOAD RESULT
+      # ==========================================
 
-  # ==========================================
-  # UPLOAD RESULT
-  # ==========================================
-
-  - name: Upload Horror Content
-    uses: actions/upload-artifact@v4
-    with:
-      name: horror-content
-      path: |
-        horror_story.txt
-        narration.wav
-        scenes.json
-        subtitles.srt
-        subtitle_images/
-        images/
-        horror_video.mp4
+      - name: Upload Horror Content
+        uses: actions/upload-artifact@v4
+        with:
+          name: horror-content
+          path: |
+            horror_story.txt
+            narration.wav
+            scenes.json
+            subtitles.srt
+            subtitle_images/
+            images/
+            horror_video.mp4
