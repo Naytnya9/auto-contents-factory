@@ -29,30 +29,23 @@ for scene in data["scenes"]:
 
     filename = f"images/scene_{scene_number}.png"
 
-    # Skip if image already exists
-    if os.path.exists(filename):
-        print(f"⏭️ Scene {scene_number} already exists. Skipping.")
-        continue
-
     print(f"🎨 Generating Scene {scene_number}...")
 
     response = None
 
+    # Retry if the Gemini server is temporarily busy
     for attempt in range(5):
 
         try:
-
             response = client.models.generate_content(
                 model="gemini-3.1-flash-image",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
-                    response_format={
-                        "image": {
-                            "aspect_ratio": "9:16",
-                            "image_size": "1K"
-                        }
-                    }
+                    image_config=types.ImageConfig(
+                        aspect_ratio="9:16",
+                        image_size="1K"
+                    )
                 )
             )
 
@@ -64,19 +57,14 @@ for scene in data["scenes"]:
                 f"⚠️ Scene {scene_number} "
                 f"attempt {attempt + 1}/5 failed:"
             )
-
             print(e)
 
             if attempt == 4:
                 raise
 
-            wait_time = 30 * (attempt + 1)
+            wait_time = 20 * (attempt + 1)
 
-            print(
-                f"⏳ Waiting {wait_time} seconds "
-                f"before retry..."
-            )
-
+            print(f"⏳ Waiting {wait_time} seconds before retry...")
             time.sleep(wait_time)
 
 
@@ -84,22 +72,21 @@ for scene in data["scenes"]:
 
     for part in response.parts:
 
-        if part.inline_data is not None:
+        if part.inline_data:
 
             image = part.as_image()
 
             image.save(filename)
 
-            image_saved = True
-
             print(f"✅ Created: {filename}")
 
+            image_saved = True
             break
 
 
     if not image_saved:
         raise RuntimeError(
-            f"Gemini returned no image for Scene {scene_number}"
+            f"❌ Gemini returned no image for Scene {scene_number}"
         )
 
 
