@@ -1,49 +1,29 @@
 import os
-import time
 import wave
+import time
+
 from google import genai
-from google.genai import errors
+from google.genai import types, errors
 
 
-API_KEY = os.environ.get("GEMINI_API_KEY")
-STORY_FILE = "horror_story.txt"
-OUTPUT_FILE = "narration.wav"
+api_key = os.environ.get("GEMINI_API_KEY")
 
-if not API_KEY:
+if not api_key:
     raise ValueError("GEMINI_API_KEY is missing!")
 
-if not os.path.exists(STORY_FILE):
-    raise FileNotFoundError("horror_story.txt not found!")
 
-
-with open(STORY_FILE, "r", encoding="utf-8") as file:
+with open("horror_story.txt", "r", encoding="utf-8") as file:
     story = file.read().strip()
 
 
-client = genai.Client(api_key=API_KEY)
+if not story:
+    raise ValueError("horror_story.txt is empty!")
 
 
-prompt = f"""
-Read the following Burmese horror story naturally as a dramatic,
-slow and scary narration.
-
-Use a mysterious horror storytelling style.
-
-Story:
-
-{story}
-"""
+client = genai.Client(api_key=api_key)
 
 
 MAX_ATTEMPTS = 6
-
-
-def save_pcm_as_wav(pcm_data, output_file, sample_rate=24000):
-    with wave.open(output_file, "wb") as wav_file:
-        wav_file.setnchannels(1)
-        wav_file.setsampwidth(2)
-        wav_file.setframerate(sample_rate)
-        wav_file.writeframes(pcm_data)
 
 
 for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -51,13 +31,31 @@ for attempt in range(1, MAX_ATTEMPTS + 1):
     try:
 
         print(
-            f"🎙️ Generating AI voice... "
-            f"Attempt {attempt}/{MAX_ATTEMPTS}"
+            f"🎙️ Generating horror voice... "
+            f"attempt {attempt}/{MAX_ATTEMPTS}"
         )
 
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt
+            model="gemini-3.1-flash-tts-preview",
+            contents=f"""
+Read the following Burmese horror story as a narrator.
+
+Use a slow, mysterious, scary and suspenseful storytelling style.
+
+Story:
+
+{story}
+""",
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name="Kore"
+                        )
+                    )
+                )
+            )
         )
 
         audio_data = None
@@ -75,8 +73,7 @@ for attempt in range(1, MAX_ATTEMPTS + 1):
                 for part in candidate.content.parts:
 
                     if (
-                        hasattr(part, "inline_data")
-                        and part.inline_data
+                        part.inline_data
                         and part.inline_data.data
                     ):
                         audio_data = part.inline_data.data
@@ -87,52 +84,65 @@ for attempt in range(1, MAX_ATTEMPTS + 1):
 
 
         if not audio_data:
-            raise ValueError(
-                "Gemini did not return audio data."
+            raise RuntimeError(
+                "Gemini returned no audio data."
             )
 
 
-        save_pcm_as_wav(audio_data, OUTPUT_FILE)
+        with wave.open("narration.wav", "wb") as audio_file:
 
-        print("✅ AI voice generated successfully!")
-        print(f"🎵 Output: {OUTPUT_FILE}")
+            audio_file.setnchannels(1)
+            audio_file.setsampwidth(2)
+            audio_file.setframerate(24000)
+            audio_file.writeframes(audio_data)
+
+
+        print("✅ AI Horror Voice generated successfully!")
+        print("🔊 File created: narration.wav")
 
         break
 
 
-    except errors.ClientError:
+    except errors.ClientError as e:
 
         if attempt == MAX_ATTEMPTS:
+
             print("❌ Gemini quota error after all attempts.")
             raise
 
+
         wait_time = attempt * 30
 
-        print("⚠️ Gemini quota/rate limit reached.")
-        print(f"⏳ Waiting {wait_time} seconds...")
+        print(f"⚠️ Gemini client/quota error: {e}")
+        print(f"⏳ Waiting {wait_time} seconds before retry...")
 
         time.sleep(wait_time)
 
 
-    except errors.ServerError:
+    except errors.ServerError as e:
 
         if attempt == MAX_ATTEMPTS:
+
             print("❌ Gemini server error after all attempts.")
             raise
 
+
         wait_time = attempt * 20
 
-        print("⚠️ Gemini server is busy.")
-        print(f"⏳ Waiting {wait_time} seconds...")
+        print(f"⚠️ Gemini server busy: {e}")
+        print(f"⏳ Waiting {wait_time} seconds before retry...")
 
         time.sleep(wait_time)
 
 
-    except Exception as error:
-
-        print(f"❌ Error: {error}")
+    except Exception as e:
 
         if attempt == MAX_ATTEMPTS:
             raise
 
-        time.sleep(10)
+        wait_time = 15
+
+        print(f"⚠️ Voice generation failed: {e}")
+        print(f"⏳ Waiting {wait_time} seconds before retry...")
+
+        time.sleep(wait_time)
