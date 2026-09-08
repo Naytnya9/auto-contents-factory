@@ -1,41 +1,39 @@
-from datetime import datetime
+import os
+from google import genai
 
-stories = [
-    {
-        "title": "The Knock at 3 AM",
-        "script": """
-ည ၃ နာရီတိတိမှာ...
+api_key = os.environ.get("GEMINI_API_KEY")
 
-တံခါးကို သုံးချက်ခေါက်သံ ကြားလိုက်ရတယ်။
+if not api_key:
+    raise ValueError("GEMINI_API_KEY is missing!")
 
-တစ်ယောက်တည်းနေတဲ့ ကောင်လေးက
-တံခါးကို ဖြည်းဖြည်းချင်း ဖွင့်ကြည့်လိုက်တယ်။
+client = genai.Client(api_key=api_key)
 
-ဒါပေမယ့်...
+prompt = """
+Create ONE original short horror story in natural Burmese language.
 
-အပြင်မှာ ဘယ်သူမှ မရှိဘူး။
+Requirements:
+- The story must be completely original.
+- Make it scary, mysterious, and suitable for TikTok.
+- Start with a powerful hook.
+- Keep the audience curious.
+- Include suspense and a surprising twist.
+- Use natural Burmese that sounds good for AI voice narration.
+- Length: approximately 60 to 90 seconds when narrated.
+- Do not use headings.
+- Do not explain anything outside the story.
 
-သူ တံခါးပိတ်လိုက်တဲ့အချိန်မှာတော့...
-
-သူ့အခန်းထဲကနေ
-တံခါးခေါက်သံ သုံးချက် ထပ်ကြားလိုက်ရတယ်...
-"""
-    }
-]
-
-story = stories[0]
-
-today = datetime.now().strftime("%Y-%m-%d")
-
-content = f"""# 👻 {story['title']}
-
-Date: {today}
-
-{story['script']}
+Return only the final Burmese horror narration.
 """
 
-with open("horror_story.txt", "w", encoding="utf-8") as f:
-    f.write(content)
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=prompt
+)
 
-print("👻 Horror story generated successfully!")
-print(content)
+story = response.text
+
+with open("horror_story.txt", "w", encoding="utf-8") as file:
+    file.write(story)
+
+print("👻 AI Horror Story generated successfully!")
+print(story)
